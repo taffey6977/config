@@ -1,13 +1,10 @@
-/************************************/
-/*		TABELLA ARCIPELAGO 6	 	*/
-/*									*/
-/* rilevazioni quantitative ospite	*/
-/*									*/
-/************************************/
+/*TABELLA ARCIPELAGO 7 - CENTRI DIURNI
+/* Tracciato 4.3 
+*/
 
 LIBNAME FAR_2016 '/sasprd/staging/staging_san1/S1_ORPSS/config/FAR_2016';
 LIBNAME FAR_2017 '/sasprd/staging/staging_san1/S1_ORPSS/config/FAR_2017';
-LIBNAME FAR_2018 '/sasprd/staging/staging_san1/S1_ORPSS/config/FAR_2018';
+LIBNAME FAR_2018 '/sasprd/staging/staging_san1/S1_ORPSS/config/FAR_2017';
 
 %MACRO SET_UDO;
 /*CONTROLLARE CHE SIA AGGIORNATO IL FILE. 
@@ -86,7 +83,7 @@ HH_PRESENZA_num	=	HH_PRESENZA
 run;
 %mend;
 
-%macro tabella_006;
+%macro tabella_007;
 DATA RILEVAZIONI;
 	SET RILEVAZIONI;
 	ANNO_RIFERIMENTO = SUBSTR(ANNO_RILEVAZIONE, 1, 4);
@@ -120,7 +117,7 @@ DATA RIL_UDO;/**/
 	MERGE RILEVAZIONI (IN=A) UDO (IN=B);
 	BY cod_udo;
 
-	IF A and b;
+	IF A ;
 RUN;
 
 data RIL_UDO;
@@ -207,8 +204,13 @@ DATA RIL_UDO;
 		NUM_INF_NON_URINARIE = INFEZIONI_NONURIN;
 RUN;
 
-DATA ARCIPELAGO6;
+DATA CD;
 	SET RIL_UDO;
+	WHERE TIPO_UDO='5';
+RUN;
+
+DATA ARCIPELAGO7;
+	SET CD;
 	KEEP
 		CODICE_SOGGETTO_BIN
 		ID_EPISODIO
@@ -218,17 +220,11 @@ DATA ARCIPELAGO6;
 		MESE_RIF
 		COD_UDO
 		REG_ENTE_GES
-		CADUTE_LIEVI 
-		CADUTE_MODERATE 
-		CADUTE_GRAVI 
-		COD_LESIONI
-		FLG_CATETERE
-		INFEZIONI_URINARIE
-		INFEZIONI_NONURIN
-		COD_CONTENZIONE;
+		GG_PRESENZA
+		HH_PRESENZA;
 RUN;
 
-DATA ARCIPELAGO6;
+DATA ARCIPELAGO7;
 	RETAIN
 		CODICE_SOGGETTO_BIN
 		ID_EPISODIO
@@ -238,38 +234,32 @@ DATA ARCIPELAGO6;
 		MESE_RIF
 		COD_UDO
 		REG_ENTE_GES
-		CADUTE_LIEVI 
-		CADUTE_MODERATE 
-		CADUTE_GRAVI 
-		COD_LESIONI
-		FLG_CATETERE
-		INFEZIONI_URINARIE
-		INFEZIONI_NONURIN
-		COD_CONTENZIONE;
-	SET ARCIPELAGO6;
+		GG_PRESENZA
+		HH_PRESENZA;
+	SET ARCIPELAGO7;
 RUN;
-%mend; 
 
+%mend; 
+/**/
 %let anno=2018; /*anno di interesse*/
 %let fase=7;  /*fase di interesse*/
 
 /*esecuzione delle macro*/
 %SET_UDO;
 %import_rilevazioni;
-%tabella_006;
+%tabella_007;
 
 /*PER ACCODAMENTO DI PIù ANNI*/
-DATA TMP_2016; SET ARCIPELAGO6; RUN; /*ANNO 2016*/
+DATA TMP_2016; SET ARCIPELAGO7; RUN; /*ANNO 2016*/
 
-DATA TMP_2017; SET ARCIPELAGO6; RUN; /*ANNO 2017*/
+DATA TMP_2017; SET ARCIPELAGO7; RUN; /*ANNO 2017*/
 
-DATA TMP_2018; SET ARCIPELAGO6; RUN; /*ANNO 2018*/
-DATA TMP1_2018; SET ARCIPELAGO6; RUN; /*ANNO 2018*/
+DATA TMP_2018; SET ARCIPELAGO7; RUN; /*ANNO 2018*/
+DATA TMP1_2018; SET ARCIPELAGO7; RUN; /*ANNO 2018*/
 
+DATA ARCIPELAGO_007; SET TMP_2016 TMP_2017 TMP_2018 TMP1_2018; RUN; 
 
-DATA ARCIPELAGO_006; SET TMP_2016 TMP_2017 TMP_2018 TMP1_2018; RUN; 
-
-data arcipelago_006; set arcipelago_006;
+data arcipelago_007; set arcipelago_007;
 if ulss_udo_new eq . and ulss_udo = '501' then ulss_udo_new = 501;
 if ulss_udo_new eq . and ulss_udo = '502' then ulss_udo_new = 502;
 if ulss_udo_new eq . and ulss_udo = '503' then ulss_udo_new = 503;
@@ -281,17 +271,3 @@ if ulss_udo_new eq . and ulss_udo = '508' then ulss_udo_new = 508;
 if ulss_udo_new eq . and ulss_udo = '509' then ulss_udo_new = 509;
 if ulss_udo_new eq . and ulss_udo = '000' then ulss_udo_new = 999;
 run; 
-
-/*
-proc summary data=ril_udo; 
-class anno_rilevazione;
-var gg_presenza;
-check per vedere se è coerente con entrata - uscita 
-*/
-
-%let today=%sysfunc(today(),yymmddn8.);
-%put &today.;
-
-data TAB_006_2016_&today.; set ARCIPELAGO_006; where anno_rif=2016; run; 
-data TAB_006_2017_&today.; set ARCIPELAGO_006; where anno_rif=2017; run; 
-data TAB_006_2018_&today.; set ARCIPELAGO_006; where anno_rif=2018; run; 
